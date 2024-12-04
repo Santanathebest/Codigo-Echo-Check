@@ -1,0 +1,102 @@
+#include "MHZ19.h" // Incluye la biblioteca para el sensor MH-Z19
+#include <Adafruit_SSD1306.h>
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+
+#define RX_PIN1 26 // Pin RX para el primer sensor
+#define TX_PIN1 14 // Pin TX para el primer sensor
+#define RX_PIN2 25 // Pin RX para el segundo sensor
+#define TX_PIN2 27 // Pin TX para el segundo sensor
+
+#define ANCHO_PANTALLA 128 // Ancho de la pantalla OLED
+#define ALTO_PANTALLA 64 // Alto de la pantalla OLED
+
+#define OLED_RESET     -1 // Pin reset incluido en algunos modelos de pantallas (-1 si no disponemos de pulsador). 
+#define DIRECCION_PANTALLA 0x3C //Dirección de comunicación: 0x3D para 128x64, 0x3C para 128x32
+
+Adafruit_SSD1306 display(ANCHO_PANTALLA, ALTO_PANTALLA, &Wire, OLED_RESET);  
+#define BAUDRATE 9600 // Baudrate para la comunicación serial con los sensores
+MHZ19 myMHZ19;     // Primer sensor
+MHZ19 myMHZ192;    // Segundo sensor
+
+void setup() {
+    Serial.begin(9600); // Inicializa la comunicación serial con el monitor serie
+display.setTextColor(SSD1306_WHITE);
+    // Configuración del primer sensor en Serial1
+    Serial1.begin(BAUDRATE, SERIAL_8N1, RX_PIN1, TX_PIN1);
+    myMHZ19.begin(Serial1);
+
+    // Configuración del segundo sensor en Serial2
+    Serial2.begin(BAUDRATE, SERIAL_8N1, RX_PIN2, TX_PIN2);
+    myMHZ192.begin(Serial2);
+
+    myMHZ19.autoCalibration();   // Activar la calibración automática del primer sensor
+    myMHZ192.autoCalibration();  // Activar la calibración automática del segundo sensor
+
+      if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {     // inicializacion de la oled 
+    Serial.println(F("SSD1306 allocation failed"));
+  }
+}
+unsigned long getDataTimer = 0;
+void loop() {
+
+
+//delay(1000);
+
+// Limpiar buffer
+  //display.clearDisplay();                //Limpiar display 
+ 
+  // Tamaño del texto
+  display.setTextSize(1);                // tamaño de letras
+  // Color del texto
+   
+  // Posición del texto
+ // display.setCursor(0, 0);               //Posicion donde aparecera el texto
+  // Escribir texto
+  
+  //display.print("prueba");                 //imprime letras RPM
+ 
+  // Enviar a pantalla
+  //display.display();                    //Envia los datos a la display
+  //RPM = 0;                              // Una vez muestre pase el segundo, este intero vuelve a 0 para iniciar otro conteo.(a diferencia del otro este es para mostrar en la lcd)
+ 
+
+    if (millis() - getDataTimer >= 2000) {
+        getDataTimer = millis();
+
+        // Leer datos del primer sensor
+        int CO2 = myMHZ19.getCO2();
+        Serial.print("CO2 Sensor 1 (ppm): ");
+        Serial.print(CO2);
+        int8_t Temp = myMHZ19.getTemperature();
+        Serial.print("  Temperatura Sensor 1 (°C): ");
+        Serial.println(Temp);
+        display.setCursor(0, 0); 
+        display.print(CO2);
+        display.display();
+
+        // Leer datos del segundo sensor
+        int CO22 = myMHZ192.getCO2();
+        Serial.print("CO2 Sensor 2 (ppm): ");
+        Serial.print(CO22);
+        int8_t Temp2 = myMHZ192.getTemperature();
+        Serial.print("  Temperatura Sensor 2 (°C): ");
+        Serial.println(Temp2);
+
+        display.clearDisplay();
+        display.setCursor(0, 0); 
+        display.print("S1.Co2:");
+        display.print(CO2);
+        display.setCursor(0, 16); 
+        display.print("S2.Co2:");
+        display.print(CO22);
+
+        display.setCursor(0, 8); 
+        display.print("S1.Temp:");
+        display.print(Temp);
+        display.setCursor(0, 24); 
+        display.print("S2.Temp:");
+        display.print(Temp2);
+        display.display();
+    }
+}
